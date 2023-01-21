@@ -1,8 +1,8 @@
 from builtins import range
-from builtins import object
+from builtins import object 
 import numpy as np
 from past.builtins import xrange
-
+from typing import Tuple
 
 class KNearestNeighbor(object):
     """ a kNN classifier with L2 distance """
@@ -18,9 +18,14 @@ class KNearestNeighbor(object):
         Inputs:
         - X: A numpy array of shape (num_train, D) containing the training data
           consisting of num_train samples each of dimension D.
-        - y: A numpy array of shape (N,) containing the training labels, where
+        - y: A numpy array of shape (num_train,) containing the training labels, where
              y[i] is the label for X[i].
         """
+        if not isinstance(X, np.ndarray):
+            X = np.array(X)
+        if not isinstance(y, np.ndarray):
+            y = np.array(y)
+
         self.X_train = X
         self.y_train = y
 
@@ -48,6 +53,8 @@ class KNearestNeighbor(object):
         else:
             raise ValueError("Invalid value %d for num_loops" % num_loops)
 
+        if (not isinstance(k, int)) or (k < 1):
+            raise ValueError("Invalid value %d for k" % k)
         return self.predict_labels(dists, k=k)
 
     def compute_distances_two_loops(self, X):
@@ -66,7 +73,7 @@ class KNearestNeighbor(object):
         """
         num_test = X.shape[0]
         num_train = self.X_train.shape[0]
-        dists = np.zeros((num_test, num_train))
+        dists = np.zeros((num_test, num_train)) # initialize a numpy array
         for i in range(num_test):
             for j in range(num_train):
                 #####################################################################
@@ -76,8 +83,7 @@ class KNearestNeighbor(object):
                 # not use a loop over dimension, nor use np.linalg.norm().          #
                 #####################################################################
                 # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-                pass
+                dists[i, j] = np.sqrt(np.sum((self.X_train[j] - X[i])**2)) # L2 distance
 
                 # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         return dists
@@ -100,9 +106,7 @@ class KNearestNeighbor(object):
             # Do not use np.linalg.norm().                                        #
             #######################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-            pass
-
+            dists[i] = np.sqrt(np.sum((X[i] - self.X_train)**2, axis=1))
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         return dists
 
@@ -130,9 +134,26 @@ class KNearestNeighbor(object):
         #       and two broadcast sums.                                         #
         #########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-        pass
-
+        
+        # X.shape=(num_test, D); self.X_train.shape=(num_train, D)
+        # when X.shape=(num_test, 1, D), X and self.X_train can be broadcasted as
+        # -> X.shape=(num_test, num_train, D)
+        # -> self.X_train.shape=(num_test, num_train, D)
+        # hence we can substract X and self.X_train
+        # but this implementation may run out of memory
+        # dists = np.sqrt(np.sum((np.expand_dims(X, axis=1) - self.X_train)**2, axis=2))
+        
+        # the square of l2 distance of two vectors x and y is
+        # (x-y)^2 = x^2 + y^2 - 2xy = np.dot(x,x) + np.dot(y,y) - 2*np.dot(x,y)
+        # to implement fully vectorization, we need to write a formula
+        # which can compute l2 distance of any two vectors at once
+        # refer to https://medium.com/@souravdey/l2-distance-matrix-vectorization-trick-26aa3247ac6c
+        x2 = np.sum(X**2, axis=1) # shape=(num_test,)
+        y2 = np.sum(self.X_train**2, axis=1) # shape=(num_train,)
+        xy = X @ self.X_train.T # @: matrix multiplication operator
+        x2 = np.expand_dims(x2, axis=1) # shape=(num_test, 1) for broadcast
+        sqr_dists = x2 + y2 - 2*xy # shape=(num_test, num_train)
+        dists = np.sqrt(sqr_dists)
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         return dists
 
@@ -154,7 +175,7 @@ class KNearestNeighbor(object):
         for i in range(num_test):
             # A list of length k storing the labels of the k nearest neighbors to
             # the ith test point.
-            closest_y = []
+            # closest_y = []
             #########################################################################
             # TODO:                                                                 #
             # Use the distance matrix to find the k nearest neighbors of the ith    #
@@ -164,7 +185,10 @@ class KNearestNeighbor(object):
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-            pass
+            # the index of k nearest neighbor in X_train
+            closest_pts: np.ndarray = np.argsort(dists[i])[:k] # 1D
+            # get the label of k nearest neighbor
+            closest_y: np.ndarray = self.y_train[closest_pts] # 1D
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
             #########################################################################
@@ -175,9 +199,18 @@ class KNearestNeighbor(object):
             # label.                                                                #
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-            pass
-
+            if k == 1:
+                y_pred[i] = closest_y.item()
+            else:
+                # get common y and their frequency
+                vals, counts = np.unique(closest_y, return_counts=True)
+                # get the index of most common y
+                most_common_y_inds: np.ndarray = np.where(counts == max(counts))[0] # 1D
+                
+                if most_common_y_inds.size > 1: # more than 1 most common y
+                    y_pred[i] = min(vals[most_common_y_inds]) # break ties
+                else:
+                    y_pred[i] = vals[most_common_y_inds].item()
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
         return y_pred
