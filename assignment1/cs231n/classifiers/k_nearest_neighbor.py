@@ -143,8 +143,9 @@ class KNearestNeighbor(object):
         # but this implementation may run out of memory
         # dists = np.sqrt(np.sum((np.expand_dims(X, axis=1) - self.X_train)**2, axis=2))
         
-        # the square of l2 distance of two vectors x and y is
-        # (x-y)^2 = x^2 + y^2 - 2xy = np.dot(x,x) + np.dot(y,y) - 2*np.dot(x,y)
+        # the square of l2 distance of two vectors x and y ||x-y||_2^2 is
+        # np.dot(x-y, x-y) = np.dot(x,x) + np.dot(y,y) - 2*np.dot(x,y)
+        # aka (x-y)^2 = x^2 + y^2 - 2xy
         # to implement fully vectorization, we need to write a formula
         # which can compute l2 distance of any two vectors at once
         # refer to https://medium.com/@souravdey/l2-distance-matrix-vectorization-trick-26aa3247ac6c
