@@ -75,8 +75,8 @@ def softmax_loss_vectorized(W, X, y, reg):
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     num_train = X.shape[0]
     scores = X.dot(W) # shape=(D,C)
-    scores -= np.max(scores, axis=1).reshape(-1,1)
-    probs = np.exp(scores) / np.sum(np.exp(scores), axis=1).reshape(-1,1)
+    scores_stable -= np.max(scores, axis=1).reshape(-1,1)
+    probs = np.exp(scores_stable) / np.sum(np.exp(scores_stable), axis=1).reshape(-1,1)
     loss += np.sum(-np.log(probs[range(num_train), y]))
     loss /= num_train
     loss += reg * np.sum(W**2)

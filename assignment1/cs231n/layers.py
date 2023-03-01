@@ -27,9 +27,9 @@ def affine_forward(x, w, b):
     # will need to reshape the input into rows.                               #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-    pass
-
+    num_input = x.shape[0]
+    x_flat = x.reshape(num_input, -1)
+    out = x_flat.dot(w) + b
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -61,7 +61,12 @@ def affine_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    num_input = x.shape[0]
+    dx = dout.dot(w.T)
+    dx = dx.reshape(*x.shape)
+    x_flat = x.reshape(num_input, -1)
+    dw = x_flat.T.dot(dout)
+    db = np.ones(num_input).dot(dout)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -87,7 +92,7 @@ def relu_forward(x):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    out = np.where(x>0, x, 0)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -114,7 +119,8 @@ def relu_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    local_grad = np.where(x>0, 1, 0)
+    dx = local_grad * dout
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -773,7 +779,23 @@ def svm_loss(x, y):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    num_train = x.shape[0]
+    row_inds = np.arange(num_train)
+    
+    correct_class_scores = np.expand_dims(x[row_inds, y], axis=1)
+    margins = x - correct_class_scores + 1
+    margins[row_inds, y] = 0
+    margins = np.where(margins>0, margins, 0)
+    loss = np.sum(margins) / num_train
+
+    counts = (margins > 0).astype(int)
+    counts[range(num_train), y] = - np.sum(counts, axis = 1)
+    num_class = x.shape[1]
+    coef = np.ones((num_train, num_class))
+    coef[margins==0] = 0 # coef=0 if max(0,x) = 0
+    coef[row_inds, y] = -np.sum(coef, axis=1) # coef=C-occurence(0) if location=(row_inds, y)
+    dx = coef
+    dx /= num_train
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -796,14 +818,23 @@ def softmax_loss(x, y):
     - loss: Scalar giving the loss
     - dx: Gradient of the loss with respect to x
     """
-    loss, dx = None, None
 
+    loss, dx = None, None
     ###########################################################################
     # TODO: Copy over your solution from A1.
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    num_train = x.shape[0]
+    x_stable = x - np.max(x, axis=1).reshape(-1,1)
+    probs = np.exp(x_stable) / np.sum(np.exp(x_stable), axis=1).reshape(-1,1)
+    loss = np.sum(-np.log(probs[range(num_train), y]))
+    loss /= num_train
+
+    probs[range(num_train), y] += -1
+    dx = probs
+    dx /= num_train
+
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################

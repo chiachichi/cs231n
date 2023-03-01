@@ -55,7 +55,15 @@ class TwoLayerNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        W1 = np.random.randn(input_dim, hidden_dim) * weight_scale # shape=(D,H)
+        W2 = np.random.randn(hidden_dim, num_classes) * weight_scale # shape=(H,C)
+        b1 = np.zeros(hidden_dim) # shape=(H,)
+        b2 = np.zeros(num_classes) # shape=(C,)
+
+        self.params['W1'] = W1
+        self.params['W2'] = W2
+        self.params['b1'] = b1
+        self.params['b2'] = b2
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -87,8 +95,10 @@ class TwoLayerNet(object):
         # class scores for X and storing them in the scores variable.              #
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-        pass
+        num_input = X.shape[0]
+        X_flat = X.reshape(num_input, -1) # shape=(N,D)
+        h, h_cache = affine_relu_forward(X_flat, self.params['W1'], self.params['b1']) # shape=(N,H)
+        scores, s_cache = affine_relu_forward(h, self.params['W2'], self.params['b2']) # shape=(N,C)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -112,7 +122,19 @@ class TwoLayerNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        loss, dscores = softmax_loss(scores, y)
+        loss += 0.5 * self.reg * (np.sum((self.params['W1'])**2) + np.sum((self.params['W2'])**2))
+
+
+        dh, dw2, db2 = affine_relu_backward(dscores, s_cache)
+        _, dw1, db1 = affine_relu_backward(dh, h_cache)
+        dw1 += self.reg * self.params['W1']
+        dw2 += self.reg * self.params['W2']
+        
+        grads['W1'] = dw1
+        grads['W2'] = dw2
+        grads['b1'] = db1
+        grads['b2'] = db2
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
